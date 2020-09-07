@@ -1,2 +1,4 @@
 *.png
 .ipynb_checkpoints
+*.jpg
+data/retail_train.csv
