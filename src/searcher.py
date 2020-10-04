@@ -30,7 +30,7 @@ class GridSearch():
 
         return param_grid_list
 
-    def fit(self, data_train, data_val, item_features_with_prices, N=5):
+    def fit(self, data_train, data_val, item_sub_comm, prices, N=5):
         param_grid_list = self._get_param_grid(self.model_params)
         result_lvl_1 = data_val.groupby('user_id')['item_id'].unique().reset_index()
         result_lvl_1.columns = ['user_id', 'actual']
@@ -42,7 +42,7 @@ class GridSearch():
                 for weighting in self.weighting_list:
                     model = MainRecommender(X, weighting=weighting, **param_grid_list[0])
                     result_lvl_1['recs'] = result_lvl_1['user_id'].apply(lambda x: model.get_main_model_recommendations(x, N=top_n))
-                    result_lvl_1 = postfilter_items(result_lvl_1, 'recs', item_features_with_prices, N=N)
+                    result_lvl_1 = postfilter_items(result_lvl_1, 'recs', item_sub_comm, prices, N=N)
                     score = result_lvl_1.apply(lambda row: self.scoring_func(row['postfilter_recs'], row['actual'], k=200), axis=1).mean()
                     if score > best_score:
                         best_score = score
@@ -50,8 +50,8 @@ class GridSearch():
                     for param in param_grid_list[1:]:
                         model.model = model.fit(model.user_item_matrix, **param)
                         result_lvl_1['recs'] = result_lvl_1['user_id'].apply(lambda x: model.get_main_model_recommendations(x, N=top_n))
-                        result_lvl_1 = postfilter_items(result_lvl_1, 'recs', item_features_with_prices)
-                        score = result_lvl_1.apply(lambda row: self.scoring_func(row['postfilter_recs'], row['actual'], k=200), axis=1).mean()
+                        result_lvl_1 = postfilter_items(result_lvl_1, 'recs', item_sub_comm, prices, N=N)
+                        score = result_lvl_1.apply(lambda row: self.scoring_func(row['postfilter_recs'], row['actual'], k=N), axis=1).mean()
                         if score > best_score:
                             best_score = score
                             best_params = [top_n, weighting, param]
